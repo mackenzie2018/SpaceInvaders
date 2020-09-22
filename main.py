@@ -83,13 +83,14 @@ def main():
     run = True
     FPS = 60
     clock = pygame.time.Clock()
-
-    player = Player(300, 650)
-
     level = 1
     lives = 5
     main_font = pygame.font.SysFont("arial", 50)
     player_vel = 5
+
+    player = Player(300, 650)
+
+
 
     def redraw_window():
        WIN.blit(BG, (0,0))
