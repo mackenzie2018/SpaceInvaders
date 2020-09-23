@@ -180,7 +180,7 @@ def main():
     player_vel = 5
     lost = False
     lost_count = 0
-    player = Player(300, 650)
+    player = Player(300, 630)
     enemies = []
     wave_length = 5
     enemy_vel = 1
@@ -243,7 +243,7 @@ def main():
             player.x += player_vel
         if keys[pygame.K_w] and ((player.y - player_vel) > 0): # up
             player.y -= player_vel
-        if keys[pygame.K_s] and ((player.y + player_vel + player.get_height()) < HEIGHT): # down
+        if keys[pygame.K_s] and ((player.y + player_vel + player.get_height()) + 10 < HEIGHT):
             player.y += player_vel
         if keys[pygame.K_SPACE]:
             player.shoot()
@@ -262,4 +262,24 @@ def main():
 
         player.move_lasers(laser_velocity, enemies)
 
-main()
+def main_menu():
+    title_font = pygame.font.SysFont("comicsans", 70)
+    run = True
+    while run:
+        WIN.blit(BG, (0,0))
+        title_label = title_font.render(
+            "Press the mouse button to begin", 
+            1,
+            (255,255,255)
+        )
+
+        WIN.blit(title_label, (WIDTH / 2 - title_label.get_width() / 2, 350))
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                run = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                main()
+    pygame.quit()
+
+main_menu()
