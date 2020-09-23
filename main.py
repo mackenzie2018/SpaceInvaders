@@ -90,7 +90,9 @@ def main():
 
     player = Player(300, 650)
 
-
+    enemies = []
+    wave_length = 5
+    enemy_vel = 1
 
     def redraw_window():
        WIN.blit(BG, (0,0))
@@ -98,17 +100,29 @@ def main():
        # Draw text
        lives_label = main_font.render(f"Lives: {lives} ", 1, (255,255,255))
        level_label = main_font.render(f"Level: {level} ", 1, (255,255,255))
-
        WIN.blit(lives_label, (10,10))
        WIN.blit(level_label, (WIDTH - level_label.get_width() - 10, 10))
 
+       # Draw player and enemies
+       for enemy in enemies:
+           enemy.draw(WIN)
        player.draw(WIN)
 
        pygame.display.update()
 
     while run:
         clock.tick(FPS)
-        redraw_window()
+        if len(enemies) == 0:
+            level += 1
+            wave_length += 5
+            for i in range(wave_length):
+                enemy = Enemy(
+                    random.randrange(50, WIDTH - 100)),
+                    random.randrange(-1500, -100)),
+                    random.choice(['red', 'blue', 'green'])
+                )
+                enemies.append(enemy)
+                    
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -123,5 +137,9 @@ def main():
         if keys[pygame.K_s] and ((player.y + player_vel + player.get_height()) < HEIGHT): # down
             player.y += player_vel
         
+        for enemy in enemies:
+            enemy.move(enemy_vel)
+
+        redraw_window()
 
 main()
