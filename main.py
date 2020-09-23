@@ -37,6 +37,7 @@ BG = pygame.transform.scale(
 
 class Ship:
     # Abstract base class
+    COOLDOWN = 30 # half a second in this case
     def __init__(self, x, y, health=100):
         self.x = x
         self.y = y
@@ -54,6 +55,18 @@ class Ship:
 
     def get_height(self):
         return self.ship_img.get_height()
+
+    def shoot(self):
+        if self.cool_down_counter == 0:
+            laser = Laser(x, y, self.laser_img)
+            self.lasers.append(laser)
+            self.cool_down_counter = 1
+
+    def cooldown(self):
+        if self.cool_down_counter >= self.COOLDOWN:
+            self.cool_down_counter = 0
+        elif self.cool_down_counter > 0:
+            self.cool_down_counter += 1
 
 class Player(Ship):
     def __init__(self, x, y, health=100):
@@ -78,6 +91,30 @@ class Enemy(Ship):
     def move(self, vel):
         self.y += vel
 
+class Laser:
+    def __init__(self, x, y, img):
+        self.x = x
+        self.y = y
+        self.img = img
+        self.mask = pygame.mask.from_surface(self.img)
+
+    def draw(self, window):
+        window.blit(self.img, (self.x, self.y))
+
+    def move(self, vel):
+        self.y += vel
+
+    def off_screen(self, height):
+        return 0 < self.y < height
+
+    def collision(self, obj):
+        return collide(self, obj)
+
+def collide(obj1, obj2):
+    offset_x = obj2.x - obj1.x
+    offset_y = obj2.y - obj1.y
+    return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+
 # Main loop
 def main():
     run = True
@@ -88,9 +125,9 @@ def main():
     main_font = pygame.font.SysFont("arial", 50)
     lost_font = pygame.font.SysFont("comicsans", 60)
     player_vel = 5
-
+    lost = False
+    lost_count = 0
     player = Player(300, 650)
-
     enemies = []
     wave_length = 5
     enemy_vel = 1
@@ -108,17 +145,25 @@ def main():
        for enemy in enemies:
            enemy.draw(WIN)
        player.draw(WIN)
-
+       
+       if lost:
+           lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
+           WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
 
     while run:
         clock.tick(FPS)
+        redraw_window()
 
-        if lives < 0 or player.health == 0:
+        # Game over test and counter
+        if lives <= 0 or player.health <= 0:
             lost = True
-        # Game over message
+            lost_count += 1
+
         if lost:
-            lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
-            WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
+            if lost_count > FPS * 3: # wait 3 seconds
+                run = False
+            else:
+                continue
             
         pygame.display.update()
 
@@ -152,6 +197,5 @@ def main():
             if enemy.y + enemy.get_height() > HEIGHT:
                 lives -= 1
                 enemies.remove(enemy)
-        redraw_window()
 
 main()
