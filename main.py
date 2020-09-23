@@ -83,9 +83,10 @@ def main():
     run = True
     FPS = 60
     clock = pygame.time.Clock()
-    level = 1
+    level = 0 
     lives = 5
     main_font = pygame.font.SysFont("arial", 50)
+    lost_font = pygame.font.SysFont("comicsans", 60)
     player_vel = 5
 
     player = Player(300, 650)
@@ -108,19 +109,28 @@ def main():
            enemy.draw(WIN)
        player.draw(WIN)
 
+       # Game over message
+       if lost:
+           lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
+           WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
        pygame.display.update()
 
     while run:
         clock.tick(FPS)
+
+        if lives < 0 or player.health == 0:
+            lost = True
+
+
         if len(enemies) == 0:
             level += 1
             wave_length += 5
             for i in range(wave_length):
                 enemy = Enemy(
-                    random.randrange(50, WIDTH - 100)),
-                    random.randrange(-1500, -100)),
+                    random.randrange(50, WIDTH - 100),
+                    random.randrange(-1500, -100),
                     random.choice(['red', 'blue', 'green'])
-                )
+                    )
                 enemies.append(enemy)
                     
         for event in pygame.event.get():
@@ -137,9 +147,11 @@ def main():
         if keys[pygame.K_s] and ((player.y + player_vel + player.get_height()) < HEIGHT): # down
             player.y += player_vel
         
-        for enemy in enemies:
+        for enemy in enemies[:]:
             enemy.move(enemy_vel)
-
+            if enemy.y + enemy.get_height() > HEIGHT:
+                lives -= 1
+                enemies.remove(enemy)
         redraw_window()
 
 main()
