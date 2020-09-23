@@ -109,18 +109,18 @@ def main():
            enemy.draw(WIN)
        player.draw(WIN)
 
-       # Game over message
-       if lost:
-           lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
-           WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
-       pygame.display.update()
 
     while run:
         clock.tick(FPS)
 
         if lives < 0 or player.health == 0:
             lost = True
-
+        # Game over message
+        if lost:
+            lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
+            WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
+            
+        pygame.display.update()
 
         if len(enemies) == 0:
             level += 1
