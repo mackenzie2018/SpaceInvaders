@@ -1,5 +1,4 @@
 # This is the main.py script
-
 import pygame
 import os
 import random
@@ -46,9 +45,9 @@ class Actions:
     @staticmethod
     def collision(obj1, obj2):
         '''Detect collision between two objects'''
-        offset_x = obj1.x - obj2.x
-        offset_y = obj1.y - obj2.y
-        return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
+        offset_x = obj2.x - obj1.x
+        offset_y = obj2.y - obj1.y
+        return obj2.mask.overlap(obj1.mask, (offset_x, offset_y)) != None
     
     @staticmethod
     def move(obj, velocity, direction):
@@ -81,8 +80,19 @@ class Actions:
                                                                       height
                                                                      ) 
     @staticmethod
-    def make_wave():
-        pass
+    def make_wave(wave_length=5):
+        if len(world_state['Enemies']) == 0:
+            level += 1
+            wave_length += 5
+            for i in range(wave_length):
+                enemy = Enemy(
+                    random.randrange(50, WIDTH - 100),
+                    random.randrange(-1500, -100),
+                    health=100
+                    )
+                world_state['Enemies'].append(enemy)
+        else:
+            pass
 
 class Ship:
     def __init__(self, x, y, health):
@@ -107,13 +117,15 @@ class Ship:
         return self.ship_img.get_height()
 
     def cooldown(self):
-        if self.cooldown_counter < self.cooldown_limit:
+        '''Return True if cooled down, False if not'''
+        if 1 <= self.cooldown_counter < self.cooldown_limit:
             self.cooldown_counter += 1
             return False
         elif self.cooldown_counter >= self.cooldown_limit:
             self.cooldown_counter = 0
             return True
-
+        elif self.cooldown_counter == 0:
+            return True
 
 class Player(Ship):
     def __init__(self, x, y, health=100):
@@ -147,9 +159,13 @@ class Player(Ship):
         self.health_bar(window)
     
     def shoot(self):
-        '''Fire a laser fof = 'PlayerLaser' or 'EnemyLaser' '''
+        '''Fire a Player Laser'''
         if self.cooldown():
-            laser = Laser(self.x, self.y, self.laser_img)
+            laser = Laser(
+                self.x, 
+                self.y - 10,
+                self.laser_img
+            )
             world_state['PlayerLasers'].append(laser)
             self.cooldown_counter = 1
         else:
@@ -162,18 +178,21 @@ class Enemy(Ship):
         'blue': (BLUE_SPACE_SHIP, BLUE_LASER)
     }
 
-    def __init__(self, x, y, health=1):
+    def __init__(self, x, y, health):
         super().__init__(x, y, health)
         self.ship_img, self.laser_img = Enemy.COLOR_MAP[random.choice(['red','green','blue'])]
         self.mask = pygame.mask.from_surface(self.ship_img)
         self.max_health = health
         self.cooldown_counter = 0
-        self.cooldown_limit = 20
+        self.cooldown_limit = 30
     
     def shoot(self):
-        '''Fire a laser fof = 'PlayerLaser' or 'EnemyLaser' '''
         if self.cooldown():
-            laser = Laser(self.x, self.y, self.laser_img)
+            laser = Laser(
+                self.x + random.randrange(-10,10), 
+                self.y,  
+                self.laser_img
+            )
             world_state['EnemyLasers'].append(laser)
             self.cooldown_counter = 1
         else:
@@ -242,8 +261,9 @@ def main():
         
         # Game over test and counter
         if lives <= 0 or world_state['Player'].health <= 0:
-            lost = True
-            lost_count += 1
+            pass
+            # lost = True
+            # lost_count += 1
 
         if lost:
             if lost_count > FPS * 3: # wait 3 seconds
@@ -253,16 +273,19 @@ def main():
 
         pygame.display.update()
 
-        # New wave of enemies
+        # New wave of enemies if none are left
         if len(world_state['Enemies']) == 0:
             level += 1
             wave_length += 5
             for i in range(wave_length):
                 enemy = Enemy(
                     random.randrange(50, WIDTH - 100),
-                    random.randrange(-1500, -100)
+                    random.randrange(-1500, -100),
+                    health=100
                     )
                 world_state['Enemies'].append(enemy)
+        else:
+            pass
 
         # Check for user events
         for event in pygame.event.get():
@@ -270,6 +293,7 @@ def main():
                 run = False
             else:
                 pass
+
 
         # Read inputs and move player
         keys = pygame.key.get_pressed()
@@ -287,36 +311,41 @@ def main():
         world_state['Player'].cooldown()
 
         # Move enemies and let them shoot 
-        for enemy in world_state['Enemies'][:]:
-            Actions.move(enemy, enemy_vel, 'down')
+        for enemy in world_state['Enemies']:
             enemy.cooldown()
-            if random.randrange(0, 120) == 1:
+            Actions.move(enemy, enemy_vel, 'down')
+            if random.randrange(0, 600) == 1:
                 enemy.shoot()
             if Actions.collision(world_state['Player'], enemy):
+                # print('Enemy collided with Player!')
                 world_state['Player'].health -= 10
                 world_state['Enemies'].remove(enemy)
             elif enemy.y + enemy.height() > HEIGHT:
-                lives -= 1
+                # lives -= 1
                 world_state['Enemies'].remove(enemy)
         
-        # Move Player lasers
-        for laser in world_state['PlayerLasers'][:]:
+        # Move Player lasers and detect collisions
+        for laser in world_state['PlayerLasers']:
             Actions.move(laser, laser_velocity, 'up')
-            for enemy in world_state['Enemies'][:]:
+            for enemy in world_state['Enemies']: # Detect collision
                 if Actions.collision(laser, enemy):
-                    # world_state['PlayerLasers'].remove(laser)
+                    # print("Player hit an Enemy!")
+                    world_state['PlayerLasers'].remove(laser)
                     world_state['Enemies'].remove(enemy)
-                elif laser.y <= 0:
-                    # world_state['PlayerLasers'].remove(laser)
-                    pass
+            if laser.y <= 0:
+                # print('One of the Players Lasers is off-screen!')
+                world_state['PlayerLasers'].remove(laser)
+                pass
 
         # Move Enemy lasers
-        for laser in world_state['EnemyLasers'][:]:
+        for laser in world_state['EnemyLasers']:
             Actions.move(laser, laser_velocity, 'down')
             if Actions.collision(laser, world_state['Player']):
+                # print("Player-Laser collision detected!")
                 world_state['Player'].health -= 10
                 world_state['EnemyLasers'].remove(laser)
             elif laser.y >= HEIGHT:
+                # print("Enemy Laser off screen")
                 world_state['EnemyLasers'].remove(laser)
     
 def main_menu():
