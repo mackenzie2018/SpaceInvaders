@@ -26,6 +26,12 @@ GREEN_LASER = pygame.image.load(os.path.join("assets","pixel_laser_green.png"))
 BLUE_LASER = pygame.image.load(os.path.join("assets","pixel_laser_blue.png"))
 YELLOW_LASER = pygame.image.load(os.path.join("assets","pixel_laser_yellow.png"))
 
+# MediKit
+MEDIKIT = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets","healthpack.png")),
+    (200,200)
+)
+
 # Background
 BG = pygame.transform.scale(
     pygame.image.load(os.path.join("assets","background-black.png")), # image 
@@ -36,7 +42,8 @@ world_state = {
             'Player': None,
             'Enemies': [],
             'PlayerLasers': [],
-            'EnemyLasers': []
+            'EnemyLasers': [],
+            'MediKits': []
         }
 
 ## START CLASS DEFINITIONS
@@ -208,6 +215,16 @@ class Laser:
     def draw(self, window):
         window.blit(self.img, (self.x, self.y))
 
+class Medikit:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.img = MEDIKIT
+        self.mask = pygame.mask.from_surface(self.img)
+        self.cooldown_counter = 0
+        self.cooldown_limit = 300 # five seconds
+
+
 ## END CLASS DEFINITIONS
 
 def main(): 
@@ -322,7 +339,22 @@ def main():
             elif enemy.y + enemy.height() > HEIGHT:
                 lives -= 1
                 world_state['Enemies'].remove(enemy)
-        
+
+        # Throw in a medikit
+        if len(world_state['MediKits'] <= 3):
+            if random.randrange(0, 1800) == 1: # circa once in 30 seconds
+                medikit = Medikit(
+                    x=random.randrange(200, WIDTH - 200),
+                    y=random.randrange(200, HEIGHT - 200)
+                )
+                world_state['MediKits'].append(medikit)
+                for medikit in world_state['Medikits'][:]:
+                    if Actions.collision(world_state['Player'],medikit):
+                        world_state['Player'].health += 10
+                        world_state['Medikits'].remove(medikit)
+                    else:
+                        pass
+
         # Move Player lasers and detect collisions
         for laser in world_state['PlayerLasers']:
             Actions.move(laser, laser_velocity, 'up')
