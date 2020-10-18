@@ -29,7 +29,7 @@ YELLOW_LASER = pygame.image.load(os.path.join("assets","pixel_laser_yellow.png")
 # MediKit
 MEDIKIT = pygame.transform.scale(
     pygame.image.load(os.path.join("assets","healthpack.png")),
-    (200,200)
+    (75, 75)
 )
 
 # Background
@@ -270,6 +270,10 @@ def main():
         for laser in world_state['PlayerLasers']:
             laser.draw(WIN)
 
+        # Draw medikits
+        for medikit in world_state['MediKits']:
+            medikit.draw(WIN)
+
         if lost:
             lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
             WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
@@ -344,19 +348,20 @@ def main():
                 world_state['Enemies'].remove(enemy)
 
         # Throw in a medikit
-        if len(world_state['MediKits'] <= 3):
-            if random.randrange(0, 1800) == 1: # circa once in 30 seconds
+        if len(world_state['MediKits']) <= 3:
+            if random.randrange(0, 600) == 1: # circa once in 30 seconds
                 medikit = Medikit(
                     x=random.randrange(200, WIDTH - 200),
                     y=random.randrange(200, HEIGHT - 200)
                 )
                 world_state['MediKits'].append(medikit)
-                for medikit in world_state['Medikits'][:]:
-                    if Actions.collision(world_state['Player'],medikit):
-                        world_state['Player'].health += 10
-                        world_state['Medikits'].remove(medikit)
-                    else:
-                        pass
+        for medikit in world_state['MediKits'][:]:
+            medikit.cooldown_counter += 1
+            if Actions.collision(world_state['Player'],medikit):
+                world_state['Player'].health += 10
+                world_state['MediKits'].remove(medikit)
+            elif medikit.cooldown_counter >= medikit.cooldown_limit:
+                world_state['MediKits'].remove(medikit)
 
         # Move Player lasers and detect collisions
         for laser in world_state['PlayerLasers']:
