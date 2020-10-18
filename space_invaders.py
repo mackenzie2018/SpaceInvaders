@@ -224,6 +224,9 @@ class Medikit:
         self.cooldown_counter = 0
         self.cooldown_limit = 300 # five seconds
 
+    def draw(self, window):
+        '''Draw the healthpack at position (x, y)'''
+        window.blit(self.img, (self.x, self.y))
 
 ## END CLASS DEFINITIONS
 
