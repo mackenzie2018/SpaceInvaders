@@ -47,7 +47,7 @@ class Actions:
         '''Detect collision between two objects'''
         offset_x = obj2.x - obj1.x
         offset_y = obj2.y - obj1.y
-        return obj2.mask.overlap(obj1.mask, (offset_x, offset_y)) != None
+        return obj1.mask.overlap(obj2.mask, (offset_x, offset_y)) != None
     
     @staticmethod
     def move(obj, velocity, direction):
@@ -261,9 +261,8 @@ def main():
         
         # Game over test and counter
         if lives <= 0 or world_state['Player'].health <= 0:
-            pass
-            # lost = True
-            # lost_count += 1
+            lost = True
+            lost_count += 1
 
         if lost:
             if lost_count > FPS * 3: # wait 3 seconds
@@ -321,7 +320,7 @@ def main():
                 world_state['Player'].health -= 10
                 world_state['Enemies'].remove(enemy)
             elif enemy.y + enemy.height() > HEIGHT:
-                # lives -= 1
+                lives -= 1
                 world_state['Enemies'].remove(enemy)
         
         # Move Player lasers and detect collisions
@@ -332,10 +331,13 @@ def main():
                     # print("Player hit an Enemy!")
                     world_state['PlayerLasers'].remove(laser)
                     world_state['Enemies'].remove(enemy)
+                    continue
             if laser.y <= 0:
                 # print('One of the Players Lasers is off-screen!')
-                world_state['PlayerLasers'].remove(laser)
-                pass
+                try:
+                    world_state['PlayerLasers'].remove(laser)
+                except:
+                    pass
 
         # Move Enemy lasers
         for laser in world_state['EnemyLasers']:
