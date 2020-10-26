@@ -38,6 +38,11 @@ BG = pygame.transform.scale(
     (WIDTH, HEIGHT) # new size
 )
 
+# Load music
+pygame.mixer.music.load(
+    os.path.join('assets','wav','score.wav')
+)
+
 world_state = {
             'Player': None,
             'Enemies': [],
@@ -245,6 +250,7 @@ def main():
     wave_length = 5
     enemy_vel = 1
     laser_velocity = 10
+    pygame.mixer.music.play(-1)
 
     def redraw_window():
         WIN.blit(BG, (0,0)) # Draw background
