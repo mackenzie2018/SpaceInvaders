@@ -7,6 +7,7 @@ pygame.font.init()
 WIDTH, HEIGHT = 750, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Space Invaders")
+pygame.mixer.init()
 
 # Load images
 RED_SPACE_SHIP = \
@@ -38,10 +39,33 @@ BG = pygame.transform.scale(
     (WIDTH, HEIGHT) # new size
 )
 
-# Load music
+# Load music and sounds
 pygame.mixer.music.load(
     os.path.join('assets','wav','score.wav')
 )
+
+SOUNDS = {
+    'DirectHit':pygame.mixer.Sound(
+        os.path.join('assets','wav','DirectHit.ogg')
+    ),
+    'HealthPickup':pygame.mixer.Sound(
+        os.path.join('assets','wav','HealthPickupBb.ogg')
+    ),
+    'YouGotHit':[
+        pygame.mixer.Sound(
+            os.path.join('assets','wav','YouTookDamage.ogg')
+        ),
+        pygame.mixer.Sound(
+            os.path.join('assets','wav','YouTookDamage2.ogg')
+        )
+    ],
+    'GameOver':pygame.mixer.Sound(
+        os.path.join('assets','wav','Bamboozled.ogg')
+    ),
+    'PlayerShoots':pygame.mixer.Sound(
+        os.path.join('assets','wav','Shoot.ogg')
+    )
+}
 
 world_state = {
             'Player': None,
@@ -293,6 +317,7 @@ def main():
         if lives <= 0 or world_state['Player'].health <= 0:
             lost = True
             lost_count += 1
+            SOUNDS['GameOver'].play()
 
         if lost:
             if lost_count > FPS * 3: # wait 3 seconds
@@ -336,6 +361,7 @@ def main():
             Actions.move(world_state['Player'], player_vel, 'down')
         if keys[pygame.K_SPACE]:
             world_state['Player'].shoot()
+            SOUNDS['PlayerShoots'].play()
 
         world_state['Player'].cooldown()
 
@@ -366,6 +392,7 @@ def main():
             if Actions.collision(world_state['Player'],medikit):
                 world_state['Player'].health += 10
                 world_state['MediKits'].remove(medikit)
+                SOUNDS['HealthPickup'].play()
             elif medikit.cooldown_counter >= medikit.cooldown_limit:
                 world_state['MediKits'].remove(medikit)
 
@@ -377,6 +404,7 @@ def main():
                     # print("Player hit an Enemy!")
                     world_state['PlayerLasers'].remove(laser)
                     world_state['Enemies'].remove(enemy)
+                    SOUNDS['DirectHit'].play()
                     continue
             if laser.y <= 0:
                 # print('One of the Players Lasers is off-screen!')
@@ -392,6 +420,7 @@ def main():
                 # print("Player-Laser collision detected!")
                 world_state['Player'].health -= 10
                 world_state['EnemyLasers'].remove(laser)
+                SOUNDS['YouGotHit'][random.randint(0,1)].play()
             elif laser.y >= HEIGHT:
                 # print("Enemy Laser off screen")
                 world_state['EnemyLasers'].remove(laser)
