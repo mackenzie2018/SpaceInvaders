@@ -7,6 +7,7 @@ pygame.font.init()
 WIDTH, HEIGHT = 750, 750
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Space Invaders")
+pygame.mixer.init()
 
 # Load images
 RED_SPACE_SHIP = \
@@ -26,17 +27,52 @@ GREEN_LASER = pygame.image.load(os.path.join("assets","pixel_laser_green.png"))
 BLUE_LASER = pygame.image.load(os.path.join("assets","pixel_laser_blue.png"))
 YELLOW_LASER = pygame.image.load(os.path.join("assets","pixel_laser_yellow.png"))
 
+# MediKit
+MEDIKIT = pygame.transform.scale(
+    pygame.image.load(os.path.join("assets","healthpack.png")),
+    (75, 75)
+)
+
 # Background
 BG = pygame.transform.scale(
     pygame.image.load(os.path.join("assets","background-black.png")), # image 
     (WIDTH, HEIGHT) # new size
 )
 
+# Load music and sounds
+pygame.mixer.music.load(
+    os.path.join('assets','wav','score.wav')
+)
+
+SOUNDS = {
+    'DirectHit':pygame.mixer.Sound(
+        os.path.join('assets','wav','DirectHit.ogg')
+    ),
+    'HealthPickup':pygame.mixer.Sound(
+        os.path.join('assets','wav','HealthPickupBb.ogg')
+    ),
+    'YouGotHit':[
+        pygame.mixer.Sound(
+            os.path.join('assets','wav','YouTookDamage.ogg')
+        ),
+        pygame.mixer.Sound(
+            os.path.join('assets','wav','YouTookDamage2.ogg')
+        )
+    ],
+    'GameOver':pygame.mixer.Sound(
+        os.path.join('assets','wav','Bamboozled.ogg')
+    ),
+    'PlayerShoots':pygame.mixer.Sound(
+        os.path.join('assets','wav','Shoot.ogg')
+    )
+}
+
 world_state = {
             'Player': None,
             'Enemies': [],
             'PlayerLasers': [],
-            'EnemyLasers': []
+            'EnemyLasers': [],
+            'MediKits': []
         }
 
 ## START CLASS DEFINITIONS
@@ -208,6 +244,19 @@ class Laser:
     def draw(self, window):
         window.blit(self.img, (self.x, self.y))
 
+class Medikit:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+        self.img = MEDIKIT
+        self.mask = pygame.mask.from_surface(self.img)
+        self.cooldown_counter = 0
+        self.cooldown_limit = 300 # five seconds
+
+    def draw(self, window):
+        '''Draw the healthpack at position (x, y)'''
+        window.blit(self.img, (self.x, self.y))
+
 ## END CLASS DEFINITIONS
 
 def main(): 
@@ -225,6 +274,7 @@ def main():
     wave_length = 5
     enemy_vel = 1
     laser_velocity = 10
+    pygame.mixer.music.play(-1)
 
     def redraw_window():
         WIN.blit(BG, (0,0)) # Draw background
@@ -250,6 +300,10 @@ def main():
         for laser in world_state['PlayerLasers']:
             laser.draw(WIN)
 
+        # Draw medikits
+        for medikit in world_state['MediKits']:
+            medikit.draw(WIN)
+
         if lost:
             lost_label = lost_font.render("You lost!!!", 1, (255,255,255))
             WIN.blit(lost_label, (WIDTH/2 - lost_label.get_width()/2, 250))
@@ -263,6 +317,7 @@ def main():
         if lives <= 0 or world_state['Player'].health <= 0:
             lost = True
             lost_count += 1
+            SOUNDS['GameOver'].play()
 
         if lost:
             if lost_count > FPS * 3: # wait 3 seconds
@@ -306,6 +361,7 @@ def main():
             Actions.move(world_state['Player'], player_vel, 'down')
         if keys[pygame.K_SPACE]:
             world_state['Player'].shoot()
+            SOUNDS['PlayerShoots'].play()
 
         world_state['Player'].cooldown()
 
@@ -322,7 +378,24 @@ def main():
             elif enemy.y + enemy.height() > HEIGHT:
                 lives -= 1
                 world_state['Enemies'].remove(enemy)
-        
+
+        # Throw in a medikit
+        if len(world_state['MediKits']) <= 3:
+            if random.randrange(0, 600) == 1: # circa once in 30 seconds
+                medikit = Medikit(
+                    x=random.randrange(200, WIDTH - 200),
+                    y=random.randrange(200, HEIGHT - 200)
+                )
+                world_state['MediKits'].append(medikit)
+        for medikit in world_state['MediKits'][:]:
+            medikit.cooldown_counter += 1
+            if Actions.collision(world_state['Player'],medikit):
+                world_state['Player'].health += 10
+                world_state['MediKits'].remove(medikit)
+                SOUNDS['HealthPickup'].play()
+            elif medikit.cooldown_counter >= medikit.cooldown_limit:
+                world_state['MediKits'].remove(medikit)
+
         # Move Player lasers and detect collisions
         for laser in world_state['PlayerLasers']:
             Actions.move(laser, laser_velocity, 'up')
@@ -331,6 +404,7 @@ def main():
                     # print("Player hit an Enemy!")
                     world_state['PlayerLasers'].remove(laser)
                     world_state['Enemies'].remove(enemy)
+                    SOUNDS['DirectHit'].play()
                     continue
             if laser.y <= 0:
                 # print('One of the Players Lasers is off-screen!')
@@ -346,6 +420,7 @@ def main():
                 # print("Player-Laser collision detected!")
                 world_state['Player'].health -= 10
                 world_state['EnemyLasers'].remove(laser)
+                SOUNDS['YouGotHit'][random.randint(0,1)].play()
             elif laser.y >= HEIGHT:
                 # print("Enemy Laser off screen")
                 world_state['EnemyLasers'].remove(laser)
